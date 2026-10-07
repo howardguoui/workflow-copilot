@@ -1,1 +1,222 @@
-{"chats": []}
+{
+ "recorded_at": "2026-10-07 20:25 UTC",
+ "model": "qwen3:8b",
+ "runtime": "Microsoft Agent Framework 1.20.0",
+ "chats": [
+  {
+   "workflow": "GPU Sizing Assistant",
+   "question": "Will Qwen2.5-7B (5.19 GiB AWQ weights) fit on a 16 GB GPU with 8k context, and for how many users?",
+   "calls": [
+    {
+     "tool": "plan_vllm",
+     "arguments": {
+      "model": "qwen2.5-7b",
+      "gpu_gib": 15.92,
+      "weights_gib": 5.19,
+      "max_model_len": 8192,
+      "kv_cache_dtype": "auto",
+      "gpu_memory_utilization": 0.9
+     },
+     "result": {
+      "model": "qwen2.5-7b",
+      "kv_cache_dtype": "fp16",
+      "kv_budget_gib": 7.64,
+      "kv_tokens": 143008,
+      "max_model_len": 8192,
+      "max_concurrent_at_max_len": 17,
+      "fits": true,
+      "gib_per_request": 0.44
+     }
+    }
+   ],
+   "answer": "The Qwen2.5-7B model (5.19 GiB weights) fits on a 16 GB GPU with 8k context length. At 90% utilization, vLLM allocates 7.64 GiB for FP16 KV cache, allowing **17 full-length requests** concurrently (0.44 GiB per request). The total memory usage (weights + cache) is 12.83 GiB, well within the 15.92 GiB GPU capacity."
+  },
+  {
+   "workflow": "GPU Sizing Assistant",
+   "question": "Can Qwen2.5-14B with 9.5 GiB of weights serve 32k-token requests on a 16 GB card?",
+   "calls": [
+    {
+     "tool": "plan_vllm",
+     "arguments": {
+      "model": "qwen2.5-14b",
+      "gpu_gib": 15.92,
+      "weights_gib": 9.5,
+      "max_model_len": 32000,
+      "kv_cache_dtype": "auto",
+      "gpu_memory_utilization": 0.9
+     },
+     "result": {
+      "model": "qwen2.5-14b",
+      "kv_cache_dtype": "fp16",
+      "kv_budget_gib": 3.33,
+      "kv_tokens": 18160,
+      "max_model_len": 32000,
+      "max_concurrent_at_max_len": 0,
+      "fits": false,
+      "gib_per_request": 5.86
+     }
+    },
+    {
+     "tool": "plan_vllm",
+     "arguments": {
+      "model": "qwen2.5-14b",
+      "gpu_gib": 15.92,
+      "weights_gib": 9.5,
+      "max_model_len": 32000,
+      "kv_cache_dtype": "fp8",
+      "gpu_memory_utilization": 0.9
+     },
+     "result": {
+      "model": "qwen2.5-14b",
+      "kv_cache_dtype": "fp8",
+      "kv_budget_gib": 3.33,
+      "kv_tokens": 36336,
+      "max_model_len": 32000,
+      "max_concurrent_at_max_len": 1,
+      "fits": true,
+      "gib_per_request": 2.93
+     }
+    }
+   ],
+   "answer": "The Qwen2.5-14B model with 9.5 GiB weights requires 5.86 GiB per 32k-token request in FP16, exceeding a 16 GB GPU's 15.92 GiB capacity. Switching to FP8 reduces memory per request to 2.93 GiB, allowing **1 concurrent 32k-token request** with 3.33 GiB of KV cache budget. FP8 halves the cache per token, enabling this fit. The total memory used is 9.5 (weights) + 2.93 (KV) = 12.43 GiB, leaving 3.49 GiB for other processes. This estimate aligns with vLLM's allocation patterns."
+  },
+  {
+   "workflow": "GPU Sizing Assistant",
+   "question": "Which server should I use for 16 users on one 16 GB GPU?",
+   "calls": [
+    {
+     "tool": "read_note",
+     "arguments": {
+      "title": "vLLM vs llama.cpp vs Ollama"
+     },
+     "result": {
+      "title": "vLLM vs llama.cpp vs Ollama",
+      "text": "# vLLM vs llama.cpp vs Ollama\n\nMeasured with Local Inference Lab on an RTX 5070 Ti (16 GB), all serving Qwen2.5-7B at 4-bit, chat requests of about 480 prompt tokens and 256 output tokens, 2026-10-07.\n\nAt 16 concurrent users:\n- vLLM with FP8 KV cache: 1,209.9 tokens/s, median time to first token 0.87 s.\n- vLLM with FP16 KV cache: 1,092.4 tokens/s, median time to first token 0.89 s.\n- llama.cpp with F16 KV cache: 527.4 tokens/s, median time to first token 4.36 s.\n- Ollama: 99.1 tokens/s, median time to first token 37.13 s.\n\nWith one user all four are close (115 to 128 tokens/s). vLLM batches up to 64 requests; llama.cpp and Ollama ran 8 parallel slots, so extra requests waited in a queue."
+     }
+    }
+   ],
+   "answer": "For 16 users on a 16 GB GPU, **vLLM with FP8 KV cache** is optimal. It delivers 1,209.9 tokens/s and 0.87s median first token time, outperforming vLLM FP16 (1,092.4 tokens/s), llama.cpp (527.4 tokens/s), and Ollama (99.1 tokens/s) by over 2\u00d7. vLLM batches up to 64 requests, while llama.cpp and Ollama only handle 8 parallel slots."
+  },
+  {
+   "workflow": "10-K Research Assistant",
+   "question": "What cybersecurity risks does JPMorgan describe?",
+   "calls": [
+    {
+     "tool": "search_filings",
+     "arguments": {
+      "question": "What cybersecurity risks does JPMorgan describe?"
+     },
+     "result": {
+      "found": true,
+      "matched_question": "What cybersecurity risks does JPMorgan describe?",
+      "answer": "JPMorgan identifies the following cybersecurity risks:  \n1. Cyber attacks causing unauthorized access, data breaches, service disruptions, or system sabotage [1][3][5].  \n2. Third-party risks from vendors, supply chains, and service providers, including ransomware, supply-chain compromises, and system failures [3][4].  \n3. Insider threats and integration challenges during business acquisitions [4].  \n4. Risks from clients/customers whose systems operate beyond JPMorgan\u2019s control [3].  \n5. Potential financial loss, litigation, reputational harm, and operational disruptions from breaches [4][5].  \n6. Evolving threats due to AI, quantum computing, and advanced social engineering attacks [6].  \n7. Challenges detecting threats due to sophisticated techniques and third-party vulnerabilities [5][6].",
+      "abstained": false,
+      "sources": [
+       {
+        "n": 1,
+        "company": "JPMORGAN CHASE & CO",
+        "fiscal_year": 2025,
+        "section": "Item 0. Full document",
+        "url": "https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm"
+       },
+       {
+        "n": 3,
+        "company": "JPMORGAN CHASE & CO",
+        "fiscal_year": 2025,
+        "section": "Item 0. Full document",
+        "url": "https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm"
+       },
+       {
+        "n": 5,
+        "company": "JPMORGAN CHASE & CO",
+        "fiscal_year": 2025,
+        "section": "Item 0. Full document",
+        "url": "https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm"
+       },
+       {
+        "n": 4,
+        "company": "JPMORGAN CHASE & CO",
+        "fiscal_year": 2025,
+        "section": "Item 0. Full document",
+        "url": "https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm"
+       },
+       {
+        "n": 6,
+        "company": "JPMORGAN CHASE & CO",
+        "fiscal_year": 2025,
+        "section": "Item 0. Full document",
+        "url": "https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm"
+       }
+      ],
+      "recorded": "Recorded by filings-rag demo-export (https://github.com/howardguoui/filings-rag), 2026-10-07 17:16 UTC, model qwen3:8b, retrieval hybrid_rerank"
+     }
+    }
+   ],
+   "answer": "JPMorgan outlines the following cybersecurity risks in its 2025 10-K filing (access the full document [here](https://www.sec.gov/Archives/edgar/data/19617/000162828026008131/jpm-20251231.htm)):\n\n1. **Cyber attacks** leading to unauthorized access, data breaches, service disruptions, or system sabotage.  \n2. **Third-party risks** from vendors, supply chains, and service providers (e.g., ransomware, supply-chain compromises, system failures).  \n3. **Insider threats** and challenges during business acquisitions.  \n4. Risks from **clients/customers** whose systems operate outside JPMorgan\u2019s control.  \n5. Potential for **financial loss, litigation, reputational harm, and operational disruptions** from breaches.  \n6. Threats from **evolving technologies** like AI, quantum computing, and advanced social engineering.  \n7. Challenges in **detecting threats** due to sophisticated techniques and third-party vulnerabilities.  \n\nThese risks are detailed in the \"Item 0. Full document\" section of their 2025 10-K filing."
+  },
+  {
+   "workflow": "10-K Research Assistant",
+   "question": "How do U.S. export controls affect NVIDIA in China?",
+   "calls": [
+    {
+     "tool": "search_filings",
+     "arguments": {
+      "question": "How do U.S. export controls affect NVIDIA in China?"
+     },
+     "result": {
+      "found": true,
+      "matched_question": "How do U.S. export controls affect NVIDIA's ability to sell products in China?",
+      "answer": "U.S. export controls restrict NVIDIA's ability to sell products in China by requiring degraded versions of chips (e.g., H200s) to comply with U.S. regulations, which Chinese regulators deemed discriminatory [3]. These controls have effectively foreclosed NVIDIA from the China data center market, allowing competitors to dominate and build ecosystems that challenge NVIDIA globally [6]. Additionally, Chinese government policies, such as the \"Action Plan\" for data centers, may further restrict NVIDIA's ability to meet new standards even if export controls ease [4]. Export controls also impose tariffs and compliance burdens, risking litigation and reduced competitiveness [6].",
+      "abstained": false,
+      "sources": [
+       {
+        "n": 3,
+        "company": "NVIDIA CORP",
+        "fiscal_year": 2026,
+        "section": "Item 1A. Risk Factors",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+       },
+       {
+        "n": 6,
+        "company": "NVIDIA CORP",
+        "fiscal_year": 2026,
+        "section": "Item 1. Business",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+       },
+       {
+        "n": 4,
+        "company": "NVIDIA CORP",
+        "fiscal_year": 2026,
+        "section": "Item 1A. Risk Factors",
+        "url": "https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm"
+       }
+      ],
+      "recorded": "Recorded by filings-rag demo-export (https://github.com/howardguoui/filings-rag), 2026-10-07 17:16 UTC, model qwen3:8b, retrieval hybrid_rerank"
+     }
+    }
+   ],
+   "answer": "U.S. export controls significantly impact NVIDIA's operations in China by restricting its ability to sell advanced products. Key effects include:  \n\n1. **Degraded Product Sales**: NVIDIA must sell lower-performance chip versions (e.g., H200s) in China to comply with U.S. regulations, a move Chinese regulators labeled as discriminatory [3].  \n2. **Market Exclusion**: These controls have effectively barred NVIDIA from the China data center market, allowing competitors to dominate and build ecosystems that challenge NVIDIA globally [6].  \n3. **Regulatory Risks**: Chinese policies, such as the \"Action Plan\" for data centers, may further limit NVIDIA's ability to meet evolving standards even if export controls are relaxed [4].  \n4. **Compliance Burdens**: Export controls impose tariffs and compliance costs, risking litigation and reducing NVIDIA's competitiveness in the region [6].  \n\n**Sources**:  \n- [3](https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm#item1a) (Item 1A. Risk Factors)  \n- [4](https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm#item1a) (Item 1A. Risk Factors)  \n- [6](https://www.sec.gov/Archives/edgar/data/1045810/000104581026000021/nvda-20260125.htm#item1) (Item 1. Business)"
+  },
+  {
+   "workflow": "10-K Research Assistant",
+   "question": "How many cars did Microsoft sell last year?",
+   "calls": [
+    {
+     "tool": "search_filings",
+     "arguments": {
+      "question": "How many cars did Microsoft sell last year?"
+     },
+     "result": {
+      "found": true,
+      "matched_question": "How many cars did Microsoft sell last year?",
+      "answer": "The filings provided do not contain this information.",
+      "abstained": true,
+      "sources": [],
+      "recorded": "Recorded by filings-rag demo-export (https://github.com/howardguoui/filings-rag), 2026-10-07 17:16 UTC, model qwen3:8b, retrieval hybrid_rerank"
+     }
+    }
+   ],
+   "answer": "The filings provided do not contain information about Microsoft's car sales. This query is outside the scope of the 10-K filings reviewed, which focus on financial disclosures, business operations, and risks specific to Microsoft's core industries (e.g., software, cloud computing, and hardware). For car-related data, you would need to consult automotive industry reports or Microsoft's specific disclosures about ventures like Azure-powered vehicles or partnerships. \n\nSource: Filings RAG demo-export (https://github.com/howardguoui/filings-rag), 2026-10-07."
+  }
+ ]
+}

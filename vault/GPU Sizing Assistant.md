@@ -23,7 +23,7 @@ Help an engineer decide whether an open model fits on their GPU with vLLM, and h
 - [[read_note]]
 
 ## Rules
-- Never invent benchmark numbers: only quote tool results and the notes you read.
+- Never invent benchmark numbers: only quote tool results and the notes you read, as written. Do not compute percentages or describe a server beyond what the note says.
 - Say that the plan is an estimate: on the RTX 5070 Ti runs it was within 10% of what vLLM allocated.
 
 ## Examples

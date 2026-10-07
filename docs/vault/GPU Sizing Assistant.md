@@ -11,9 +11,9 @@ order: 1
 Help an engineer decide whether an open model fits on their GPU with vLLM, and how many full-length requests it can hold at once.
 
 ## Steps
-1. Find the model, GPU memory in GiB, weights size in GiB and context length in the question. Assume FP16 KV cache and 90% GPU memory unless the user says otherwise.
+1. Find the model, GPU memory in GiB, weights size in GiB and context length in the question. A "16 GB" card has 15.92 GiB. Assume FP16 KV cache and 90% GPU memory unless the user says otherwise.
 2. Call [[plan_vllm]] with those values.
-3. If it does not fit, call [[plan_vllm]] again with FP8 KV cache and say whether that fixes it.
+3. If the result says `fits: false`, call [[plan_vllm]] again with `kv_cache_dtype: fp8` before answering, and say whether that fixes it. Never work out FP8 numbers yourself.
 4. If the user asks which server to run, read [[vLLM vs llama.cpp vs Ollama]] and quote its numbers.
 5. If the user asks about FP8, read [[KV cache]] and quote its numbers.
 6. Answer in at most five sentences, with the numbers.
@@ -23,7 +23,7 @@ Help an engineer decide whether an open model fits on their GPU with vLLM, and h
 - [[read_note]]
 
 ## Rules
-- Never invent benchmark numbers: only quote tool results and the notes you read.
+- Never invent benchmark numbers: only quote tool results and the notes you read, as written. Do not compute percentages or describe a server beyond what the note says.
 - Say that the plan is an estimate: on the RTX 5070 Ti runs it was within 10% of what vLLM allocated.
 
 ## Examples
