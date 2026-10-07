@@ -13,7 +13,7 @@ Answer questions about the risks and business of eight large public companies fr
 ## Steps
 1. Always call [[search_filings]] with the user's question first, even when the question looks off-topic: the tool decides what the filings cover, not you.
 2. If it finds a matching answer, restate it in plain language and keep its source sections.
-3. If nothing matches, say the filings in this demo do not cover the question and list what they do cover.
+3. If nothing matches or the tool abstains, say only that the filings in this demo do not cover the question; add no background about the company.
 
 ## Tools
 - [[search_filings]]

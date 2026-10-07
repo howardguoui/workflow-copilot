@@ -37,7 +37,8 @@ description: Answers "will this model fit on my GPU, and for how many users?" fo
 ## Steps
 1. Find the model, GPU memory, weights size and context length in the question. Assume FP16 KV cache.
 2. Call [[plan_vllm]] with those values.
-3. If it does not fit, call [[plan_vllm]] again with FP8 KV cache and say whether that fixes it.
+3. If the result says `fits: false`, call [[plan_vllm]] again with `kv_cache_dtype: fp8` before answering.
+   Never work out FP8 numbers yourself.
 4. If the user asks which server to run, read [[vLLM vs llama.cpp vs Ollama]] and quote its numbers.
 
 ## Tools
