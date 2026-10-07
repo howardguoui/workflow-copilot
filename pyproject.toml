@@ -1,0 +1,39 @@
+[project]
+name = "workflow-copilot"
+version = "0.1.0"
+description = "Turn an Obsidian workflow note into a chatbot: Microsoft Agent Framework + Microsoft 365 Agents SDK, local models via Ollama, and an in-browser version with WebLLM."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+  "agent-framework-core>=1.20,<2",
+  "agent-framework-openai>=1.15,<2",
+  "microsoft-agents-hosting-aiohttp>=1.8,<2",
+  "microsoft-agents-hosting-core>=1.8,<2",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff==0.16.10"]
+
+[project.scripts]
+workflow-copilot = "workflow_copilot.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/workflow_copilot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

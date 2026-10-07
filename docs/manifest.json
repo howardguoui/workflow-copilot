@@ -1,0 +1,78 @@
+{
+ "workflows": [
+  "GPU Sizing Assistant.md",
+  "10-K Research Assistant.md"
+ ],
+ "notes": [
+  "10-K Research Assistant.md",
+  "GPU Sizing Assistant.md",
+  "Notes/KV cache.md",
+  "Notes/vLLM vs llama.cpp vs Ollama.md",
+  "Tools/plan_vllm.md",
+  "Tools/read_note.md",
+  "Tools/search_filings.md"
+ ],
+ "planner": {
+  "gib": 1073741824,
+  "kv_bytes": {
+   "auto": 2.0,
+   "fp8": 1.0
+  },
+  "gpu_memory_utilization": 0.9,
+  "overhead_gib": 1.5,
+  "block_size": 16,
+  "models": {
+   "qwen2.5-7b": {
+    "n_layers": 28,
+    "n_kv_heads": 4,
+    "head_dim": 128,
+    "params_b": 7.62
+   },
+   "qwen2.5-14b": {
+    "n_layers": 48,
+    "n_kv_heads": 8,
+    "head_dim": 128,
+    "params_b": 14.7
+   },
+   "qwen2.5-32b": {
+    "n_layers": 64,
+    "n_kv_heads": 8,
+    "head_dim": 128,
+    "params_b": 32.5
+   },
+   "qwen3-8b": {
+    "n_layers": 36,
+    "n_kv_heads": 8,
+    "head_dim": 128,
+    "params_b": 8.19
+   },
+   "qwen3-14b": {
+    "n_layers": 40,
+    "n_kv_heads": 8,
+    "head_dim": 128,
+    "params_b": 14.8
+   },
+   "llama-3.1-8b": {
+    "n_layers": 32,
+    "n_kv_heads": 8,
+    "head_dim": 128,
+    "params_b": 8.03
+   },
+   "mistral-7b": {
+    "n_layers": 32,
+    "n_kv_heads": 8,
+    "head_dim": 128,
+    "params_b": 7.25
+   }
+  }
+ },
+ "models": [
+  "qwen2.5-7b",
+  "qwen2.5-14b",
+  "qwen2.5-32b",
+  "qwen3-8b",
+  "qwen3-14b",
+  "llama-3.1-8b",
+  "mistral-7b"
+ ]
+}

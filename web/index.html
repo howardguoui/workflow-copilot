@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Workflow Copilot</title>
+<meta name="description" content="Write an agent workflow as an Obsidian note and get a chatbot: Microsoft Agent Framework and Microsoft 365 Agents SDK, or a small model running in your browser." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #fafbfc; --surface: #ffffff; --ink: #13213b; --muted: #566173; --line: #dde3ea;
+    --accent: #1f5fa8; --tint: #e8eff8; --note: #f6f4ef; --tool: #fff4e3; --tool-ink: #8a4b0f; --good: #1d7a4a; --bad: #a12a2a;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0f1a2e; --surface: #15223a; --ink: #e8edf4; --muted: #a3aebd; --line: #26354f;
+      --accent: #8dbcf0; --tint: #1a2a44; --note: #1b2436; --tool: #3a2a14; --tool-ink: #f3c27f; --good: #6fcf97; --bad: #f08c8c;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); text-underline-offset: 3px; }
+  code, pre, textarea.note { font: 13px/1.55 "IBM Plex Mono", ui-monospace, monospace; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  header.top { border-bottom: 1px solid var(--line); background: var(--surface); }
+  header.top .wrap { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding-top: 12px; padding-bottom: 12px; }
+  .brand { font: 600 1.15rem/1 "IBM Plex Sans Condensed", sans-serif; color: var(--ink); text-decoration: none; }
+  header nav { margin-left: auto; display: flex; gap: 14px; font-size: .92rem; flex-wrap: wrap; }
+  h1 { font: 600 clamp(1.7rem, 5vw, 2.5rem)/1.15 "IBM Plex Sans Condensed", sans-serif; margin: 34px 0 10px; }
+  h2 { font: 600 1.35rem/1.25 "IBM Plex Sans Condensed", sans-serif; margin: 0 0 6px; }
+  h3 { font-size: 1rem; margin: 0 0 6px; }
+  .lead { color: var(--muted); max-width: 72ch; margin: 0 0 10px; }
+  .flow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0 6px; }
+  @media (max-width: 760px) { .flow { grid-template-columns: 1fr; } }
+  .flow div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  .flow b { display: block; font: 600 1.05rem/1.2 "IBM Plex Sans Condensed", sans-serif; margin-bottom: 4px; }
+  .flow span { color: var(--muted); font-size: .9rem; }
+  section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin: 22px 0; }
+  .tabs { display: flex; gap: 6px; margin: 10px 0 14px; flex-wrap: wrap; }
+  .tabs button { font: inherit; font-size: .9rem; border: 1px solid var(--line); background: none; color: var(--muted); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  @media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+  textarea.note { width: 100%; min-height: 470px; resize: vertical; background: var(--note); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+  .compiled { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 14px; overflow: auto; max-height: 520px; }
+  .compiled pre { white-space: pre-wrap; margin: 6px 0 12px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 10px; }
+  .chip { font-size: .8rem; border-radius: 999px; padding: 2px 10px; background: var(--tint); }
+  .chip.tool { background: var(--tool); color: var(--tool-ink); }
+  .err { color: var(--bad); font-size: .9rem; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  .chat { border: 1px solid var(--line); border-radius: 8px; background: var(--paper); padding: 12px; min-height: 260px; max-height: 560px; overflow: auto; }
+  .msg { margin: 8px 0; max-width: 92%; }
+  .msg.user { margin-left: auto; background: var(--accent); color: var(--paper); border-radius: 12px 12px 2px 12px; padding: 8px 12px; width: fit-content; }
+  .msg.bot { background: var(--surface); border: 1px solid var(--line); border-radius: 12px 12px 12px 2px; padding: 8px 12px; white-space: pre-wrap; }
+  .call { font: 12px/1.45 "IBM Plex Mono", monospace; background: var(--tool); color: var(--tool-ink); border-radius: 6px; padding: 6px 9px; margin: 6px 0; white-space: pre-wrap; word-break: break-word; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  .row input { flex: 1; font: inherit; padding: 9px 11px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); min-width: 0; }
+  button.primary { font: inherit; font-weight: 500; background: var(--ink); color: var(--paper); border: 0; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button.primary:disabled { opacity: .5; cursor: default; }
+  .examples { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+  .examples button { font: inherit; font-size: .88rem; text-align: left; color: var(--accent); background: none; border: 1px dashed var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  select { font: inherit; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); max-width: 100%; }
+  .progress { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+  .progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .recorded article { border-top: 1px solid var(--line); padding: 12px 0; }
+  .recorded article:first-child { border-top: 0; }
+  pre.cmd { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; }
+  footer { color: var(--muted); font-size: .88rem; padding: 26px 0 40px; }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./">Workflow Copilot</a>
+  <nav><a href="#note">The note</a><a href="#chat">Chat</a><a href="#m365">Microsoft 365</a><a href="https://github.com/howardguoui/workflow-copilot">GitHub</a></nav>
+</div></header>
+
+<main class="wrap">
+  <h1>Write the workflow in Obsidian. Get a chatbot.</h1>
+  <p class="lead">An agent's job (its steps, tools and rules) lives in an ordinary Obsidian note. Workflow Copilot compiles
+    the note into an agent and runs it: with the Microsoft Agent Framework behind a Microsoft 365 Agents SDK endpoint
+    (Teams, Copilot, Agents Playground), or with a small model right here in your browser.</p>
+  <div class="flow">
+    <div><b>1. Obsidian note</b><span>Properties, Steps, Tools as [[links]] to tool notes, Rules, Examples. Edit it below.</span></div>
+    <div><b>2. Compiled agent</b><span>System instructions plus only the tools the note links to, with the descriptions from the tool notes.</span></div>
+    <div><b>3. Chatbot</b><span>Microsoft Agent Framework + M365 Agents SDK with a local model (Ollama), or WebLLM in the browser.</span></div>
+  </div>
+
+  <section class="card" id="note">
+    <h2>The note, and the agent it compiles to</h2>
+    <p class="lead">Change a step or a rule and the agent on the right updates instantly. The chat below uses whatever is in this box.</p>
+    <div class="tabs" id="wf-tabs" role="group" aria-label="Workflow"></div>
+    <div class="split">
+      <div><label class="muted" for="note-text">Workflow note (markdown, as saved by Obsidian)</label>
+        <textarea class="note" id="note-text" spellcheck="false"></textarea></div>
+      <div><span class="muted">Compiled agent</span><div class="compiled" id="compiled" aria-live="polite"></div></div>
+    </div>
+  </section>
+
+  <section class="card" id="chat">
+    <h2>Chat with it</h2>
+    <div class="tabs" id="mode-tabs" role="group" aria-label="Mode">
+      <button type="button" data-mode="live" aria-pressed="true">Live in your browser</button>
+      <button type="button" data-mode="recorded" aria-pressed="false">Recorded: Agent Framework + Qwen3 8B</button>
+    </div>
+    <div id="live">
+      <p class="lead" id="live-note">A small open model runs on your own graphics card through WebGPU (WebLLM): no server, nothing sent anywhere.
+        The first load downloads the model; your browser keeps it for next time.</p>
+      <div class="row" style="flex-wrap:wrap;align-items:center">
+        <select id="model">
+          <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC" selected>Qwen2.5 1.5B (needs about 1.6 GB GPU memory)</option>
+          <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (lighter, about 0.9 GB)</option>
+          <option value="Qwen2.5-3B-Instruct-q4f16_1-MLC">Qwen2.5 3B (better, about 2.5 GB)</option>
+        </select>
+        <button class="primary" id="load" type="button">Load model</button>
+      </div>
+      <div class="progress" hidden id="prog"><span></span></div>
+      <p class="muted" id="load-status"></p>
+      <div class="split" style="margin-top:8px">
+        <div>
+          <div class="chat" id="log" aria-live="polite"></div>
+          <form class="row" id="ask"><input id="q" placeholder="Ask the workflow…" autocomplete="off" disabled /><button class="primary" id="send" disabled>Send</button></form>
+        </div>
+        <div><span class="muted">Try the note's examples</span><div class="examples" id="ex"></div>
+          <p class="muted" style="margin-top:14px">How the browser bot works: for each message the model picks a tool from the note (the choice is
+            constrained to valid JSON), the tool runs in the page, and the model writes the answer from the result.
+            A 1.5B model is far weaker than the 8B one in the recorded runs; that gap is the point of the comparison.</p></div>
+      </div>
+    </div>
+    <div id="recorded" class="recorded" hidden></div>
+  </section>
+
+  <section class="card" id="m365">
+    <h2>Run the same note in Microsoft 365</h2>
+    <p class="lead">The Python package compiles the same note and serves it with the Microsoft 365 Agents SDK; any OpenAI-compatible model works
+      (Ollama locally, vLLM, or Azure OpenAI).</p>
+<pre class="cmd">pip install -e .
+ollama pull qwen3:8b
+workflow-copilot chat  "vault/GPU Sizing Assistant.md"     # terminal chat
+workflow-copilot serve "vault/GPU Sizing Assistant.md"     # http://localhost:3978/api/messages
+# then connect Microsoft 365 Agents Playground (local, no Azure account) to that endpoint;
+# registering an Azure Bot puts the same app in Teams and Microsoft 365 Copilot.</pre>
+  </section>
+</main>
+
+<footer class="wrap">
+  <p>Tool data is real: the GPU planner is Local Inference Lab's (<a href="https://howardguoui.github.io/local-inference-lab/">demo</a>), and filing answers were recorded from
+    Filings RAG (<a href="https://howardguoui.github.io/filings-rag/">demo</a>). Built by <a href="https://howardguoui.github.io/">Howard Guo</a>.</p>
+</footer>
+<script src="planner.js"></script>
+<script src="compile.js"></script>
+<script src="tools.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
