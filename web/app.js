@@ -135,9 +135,15 @@ function runTool(name, args) {
 }
 
 async function json(messages, schema) {
-  const r = await state.engine.chat.completions.create({ messages, temperature: 0, max_tokens: 200,
-    response_format: { type: 'json_object', schema: JSON.stringify(schema) } });
-  return JSON.parse(r.choices[0].message.content);
+  // Constrained decoding can run into whitespace until max_tokens and leave the JSON unfinished; retry once.
+  let last;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const r = await state.engine.chat.completions.create({ temperature: attempt ? 0.3 : 0, max_tokens: 300,
+      messages: attempt ? [...messages, { role: 'user', content: 'Reply with compact JSON on one line.' }] : messages,
+      response_format: { type: 'json_object', schema: JSON.stringify(schema) } });
+    try { return JSON.parse(r.choices[0].message.content); } catch (e) { last = e; }
+  }
+  throw new Error(`The model did not return valid JSON (${last.message}). Try again or pick a larger model.`);
 }
 
 async function turn(question) {

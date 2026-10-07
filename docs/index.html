@@ -109,12 +109,12 @@
     </div>
     <div id="live">
       <p class="lead" id="live-note">A small open model runs on your own graphics card through WebGPU (WebLLM): no server, nothing sent anywhere.
-        The first load downloads the model; your browser keeps it for next time.</p>
+        The first load downloads the model (about 2 GB for 3B, a few minutes); your browser keeps it, so later loads take seconds.</p>
       <div class="row" style="flex-wrap:wrap;align-items:center">
         <select id="model">
-          <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC" selected>Qwen2.5 1.5B (needs about 1.6 GB GPU memory)</option>
-          <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (lighter, about 0.9 GB)</option>
-          <option value="Qwen2.5-3B-Instruct-q4f16_1-MLC">Qwen2.5 3B (better, about 2.5 GB)</option>
+          <option value="Qwen2.5-3B-Instruct-q4f16_1-MLC" selected>Qwen2.5 3B (recommended, about 2.5 GB GPU memory)</option>
+          <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen2.5 1.5B (lighter, about 1.6 GB, picks wrong arguments more often)</option>
+          <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen2.5 0.5B (lightest, about 0.9 GB, least reliable)</option>
         </select>
         <button class="primary" id="load" type="button">Load model</button>
       </div>
@@ -128,7 +128,7 @@
         <div><span class="muted">Try the note's examples</span><div class="examples" id="ex"></div>
           <p class="muted" style="margin-top:14px">How the browser bot works: for each message the model picks a tool from the note (the choice is
             constrained to valid JSON), the tool runs in the page, and the model writes the answer from the result.
-            A 1.5B model is far weaker than the 8B one in the recorded runs; that gap is the point of the comparison.</p></div>
+            The first action is always one of the note's tools, since small models otherwise answer from memory. A 3B model is still much weaker than the 8B one in the recorded runs; that gap is the point of the comparison.</p></div>
       </div>
     </div>
     <div id="recorded" class="recorded" hidden></div>

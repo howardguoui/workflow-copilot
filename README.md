@@ -79,7 +79,7 @@ Bot and swap the anonymous connection in `m365.py` for an MSAL connection manage
 
 `docs/` is a static page (GitHub Pages). It loads the vault's markdown, compiles the selected note with `compile.js`
 and runs a Qwen2.5 model with WebLLM. Small models are unreliable at free-form tool calling, so each turn is split:
-the model picks the next tool from the note's list (output constrained to a JSON schema), fills that tool's arguments
+the model picks the next tool from the note's list (output constrained to a JSON schema; the first pick must be a tool, because small models otherwise answer from memory), fills that tool's arguments
 (also schema-constrained), the tool runs in the page, and the model writes the answer from the result. Browsers
 without WebGPU (most phones) get the recorded transcripts instead.
 
