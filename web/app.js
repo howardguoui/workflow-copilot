@@ -150,9 +150,14 @@ async function turn(question) {
   try {
     for (let i = 0; i < 3 && tools.length; i++) {
       const done = calls.map((k) => `${k.tool}(${JSON.stringify(k.arguments)})`).join('; ') || 'none';
-      const decide = await json([{ role: 'system', content: `${c.instructions}\n\nDecide the next action for the latest user message. ` +
-        `Tools already called this turn: ${done}. Choose a tool only if the steps call for it and you do not have its result yet; otherwise choose "answer".` },
-        ...convo], { type: 'object', properties: { action: { type: 'string', enum: [...tools, 'answer'] } }, required: ['action'] });
+      // Small models tend to answer from memory, so the first action is always one of the note's tools;
+      // "answer" becomes an option once there is a tool result to answer from.
+      const options = i === 0 ? tools : [...tools, 'answer'];
+      const ask = i === 0 ? 'Choose the tool the steps call first for the latest user message.'
+        : `Decide the next action for the latest user message. Tools already called this turn: ${done}. ` +
+          'Choose a tool only if the steps call for it and you do not have its result yet; otherwise choose "answer".';
+      const decide = await json([{ role: 'system', content: `${c.instructions}\n\n${ask}` }, ...convo],
+        { type: 'object', properties: { action: { type: 'string', enum: options } }, required: ['action'] });
       if (decide.action === 'answer' || !tools.includes(decide.action)) break;
       const args = await json([{ role: 'system', content: `${c.instructions}\n\nWrite the arguments for ${decide.action}: ${c.tool_docs[decide.action] || ''} ` +
         'Take the values from the conversation; use the defaults the steps give for anything missing.' }, ...convo], toolSchema(decide.action, wf));
@@ -165,7 +170,8 @@ async function turn(question) {
     }
     const bubble = add('msg bot', '…');
     const stream = await state.engine.chat.completions.create({ stream: true, temperature: 0.2, max_tokens: 400, messages: [
-      { role: 'system', content: `${c.instructions}\n\nNow answer the user's latest question. Follow the steps and rules, and use only the tool results above for numbers and facts.` },
+      { role: 'system', content: `${c.instructions}\n\nNow answer the user's latest question in plain sentences. Follow the steps and rules, and use only the tool results above for numbers and facts. ` +
+        'Do not write tool calls or invent results; the tools have already run.' },
       ...convo] });
     let text = '';
     for await (const chunk of stream) { text += chunk.choices[0]?.delta?.content || ''; bubble.textContent = text; $('#log').scrollTop = 1e9; }
