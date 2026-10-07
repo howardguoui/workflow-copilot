@@ -162,15 +162,15 @@ async function turn(question) {
       // Small models tend to answer from memory, so the first action is always one of the note's tools;
       // "answer" becomes an option once there is a tool result to answer from.
       const options = i === 0 ? tools : [...tools, 'answer'];
-      const ask = i === 0 ? 'Choose the tool the steps call first for the latest user message.'
+      const ask = i === 0 ? 'Which of the tools do the steps say to use for the latest user message?'
         : 'Read the steps again and the tool results above. If a step calls for another tool call given those results ' +
           '(for example a different argument), choose that tool; otherwise choose "answer".';
       const decide = await json([{ role: 'system', content: `${c.instructions}${results()}\n\n${ask}` }, ...convo],
         { type: 'object', properties: { action: { type: 'string', enum: options } }, required: ['action'] });
       if (decide.action === 'answer' || !tools.includes(decide.action)) break;
-      const args = await json([{ role: 'system', content: `${c.instructions}${results()}\n\nWrite the arguments for the next ` +
-        `${decide.action} call: ${c.tool_docs[decide.action] || ''} Take the values from the conversation and the steps; ` +
-        'use the defaults the steps give for anything missing.' }, ...convo], toolSchema(decide.action, wf));
+      const args = await json([{ role: 'system', content: `${c.instructions}${results()}\n\nWrite the arguments for ${decide.action}. ` +
+        'Take the values from the latest user message; use the defaults step 1 gives for anything missing. ' +
+        'If a step makes you call it again after a result above, keep the values and change only the argument that step names.' }, ...convo], toolSchema(decide.action, wf));
       if (calls.some((k) => k.tool === decide.action && JSON.stringify(k.arguments) === JSON.stringify(args))) break;
       const result = runTool(decide.action, args);
       calls.push({ tool: decide.action, arguments: args, result });
