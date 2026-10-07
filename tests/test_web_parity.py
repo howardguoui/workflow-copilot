@@ -18,7 +18,11 @@ pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="needs Node
 
 def node(script: str, payload) -> object:
     out = subprocess.run(
-        ["node", "-e", script, str(ROOT / "web")], input=json.dumps(payload), capture_output=True, text=True, check=True
+        ["node", "-e", script, str(ROOT / "web")],
+        input=json.dumps(payload),
+        capture_output=True,
+        encoding="utf-8",
+        check=True,
     )
     return json.loads(out.stdout)
 
