@@ -153,31 +153,33 @@ async function turn(question) {
   add('msg user', esc(question));
   const convo = [...state.history, { role: 'user', content: question }];
   const calls = [];
+  // Tool results go into the system prompt, not into the chat as fake assistant turns: small models copy such
+  // turns into their answers ("Calling plan_vllm again...") instead of acting on them.
+  const results = () => calls.length ? '\n\nTool results so far for the latest message:\n' +
+    calls.map((k) => `- ${k.tool}(${JSON.stringify(k.arguments)}) returned ${JSON.stringify(k.result)}`).join('\n') : '';
   try {
     for (let i = 0; i < 3 && tools.length; i++) {
-      const done = calls.map((k) => `${k.tool}(${JSON.stringify(k.arguments)})`).join('; ') || 'none';
       // Small models tend to answer from memory, so the first action is always one of the note's tools;
       // "answer" becomes an option once there is a tool result to answer from.
       const options = i === 0 ? tools : [...tools, 'answer'];
       const ask = i === 0 ? 'Choose the tool the steps call first for the latest user message.'
-        : `Decide the next action for the latest user message. Tools already called this turn: ${done}. ` +
-          'Choose a tool only if the steps call for it and you do not have its result yet; otherwise choose "answer".';
-      const decide = await json([{ role: 'system', content: `${c.instructions}\n\n${ask}` }, ...convo],
+        : 'Read the steps again and the tool results above. If a step calls for another tool call given those results ' +
+          '(for example a different argument), choose that tool; otherwise choose "answer".';
+      const decide = await json([{ role: 'system', content: `${c.instructions}${results()}\n\n${ask}` }, ...convo],
         { type: 'object', properties: { action: { type: 'string', enum: options } }, required: ['action'] });
       if (decide.action === 'answer' || !tools.includes(decide.action)) break;
-      const args = await json([{ role: 'system', content: `${c.instructions}\n\nWrite the arguments for ${decide.action}: ${c.tool_docs[decide.action] || ''} ` +
-        'Take the values from the conversation; use the defaults the steps give for anything missing.' }, ...convo], toolSchema(decide.action, wf));
+      const args = await json([{ role: 'system', content: `${c.instructions}${results()}\n\nWrite the arguments for the next ` +
+        `${decide.action} call: ${c.tool_docs[decide.action] || ''} Take the values from the conversation and the steps; ` +
+        'use the defaults the steps give for anything missing.' }, ...convo], toolSchema(decide.action, wf));
       if (calls.some((k) => k.tool === decide.action && JSON.stringify(k.arguments) === JSON.stringify(args))) break;
       const result = runTool(decide.action, args);
       calls.push({ tool: decide.action, arguments: args, result });
       add('call', `${esc(decide.action)}(${esc(JSON.stringify(args))})\n→ ${esc(fmtResult(result))}`);
-      convo.push({ role: 'assistant', content: `Calling ${decide.action} with ${JSON.stringify(args)}.` },
-        { role: 'user', content: `Result of ${decide.action}: ${JSON.stringify(result)}` });
     }
     const bubble = add('msg bot', '…');
     const stream = await state.engine.chat.completions.create({ stream: true, temperature: 0.2, max_tokens: 400, messages: [
-      { role: 'system', content: `${c.instructions}\n\nNow answer the user's latest question in plain sentences. Follow the steps and rules, and use only the tool results above for numbers and facts. ` +
-        'Do not write tool calls or invent results; the tools have already run.' },
+      { role: 'system', content: `${c.instructions}${results()}\n\nNow answer the user's latest question in plain sentences. ` +
+        'Follow the steps and rules, and use only these tool results for numbers and facts. Do not mention calling tools.' },
       ...convo] });
     let text = '';
     for await (const chunk of stream) { text += chunk.choices[0]?.delta?.content || ''; bubble.textContent = text; $('#log').scrollTop = 1e9; }
