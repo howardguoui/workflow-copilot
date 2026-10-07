@@ -168,9 +168,8 @@ async function turn(question) {
       const decide = await json([{ role: 'system', content: `${c.instructions}${results()}\n\n${ask}` }, ...convo],
         { type: 'object', properties: { action: { type: 'string', enum: options } }, required: ['action'] });
       if (decide.action === 'answer' || !tools.includes(decide.action)) break;
-      const args = await json([{ role: 'system', content: `${c.instructions}${results()}\n\nWrite the arguments for ${decide.action}. ` +
-        'Take the values from the latest user message; use the defaults step 1 gives for anything missing. ' +
-        'If a step makes you call it again after a result above, keep the values and change only the argument that step names.' }, ...convo], toolSchema(decide.action, wf));
+      const args = await json([{ role: 'system', content: `${c.instructions}${results()}\n\nWrite the arguments for ${decide.action}: ${c.tool_docs[decide.action] || ''} ` +
+        'Take the values from the conversation; use the defaults the steps give for anything missing.' }, ...convo], toolSchema(decide.action, wf));
       if (calls.some((k) => k.tool === decide.action && JSON.stringify(k.arguments) === JSON.stringify(args))) break;
       const result = runTool(decide.action, args);
       calls.push({ tool: decide.action, arguments: args, result });
