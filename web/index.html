@@ -128,7 +128,7 @@
         <div><span class="muted">Try the note's examples</span><div class="examples" id="ex"></div>
           <p class="muted" style="margin-top:14px">How the browser bot works: for each message the model picks a tool from the note (the choice is
             constrained to valid JSON), the tool runs in the page, and the model writes the answer from the result.
-            The first action is always one of the note's tools, since small models otherwise answer from memory. A 3B model is still much weaker than the 8B one in the recorded runs; that gap is the point of the comparison.</p></div>
+            The first action is always one of the note's tools, since small models otherwise answer from memory. Tested on an RTX 5070 Ti with Qwen2.5 3B: one-tool workflows (10-K Research Assistant) work well, but on multi-step ones (GPU Sizing) it often skips a step, such as the FP8 re-plan. The Recorded tab shows Qwen3 8B doing those steps; that gap is the point of the comparison.</p></div>
       </div>
     </div>
     <div id="recorded" class="recorded" hidden></div>
