@@ -31,7 +31,13 @@ class WorkflowCopilot:
         if unknown:
             raise ValueError(f"The note links to tools this runtime does not have: {', '.join(unknown)}")
         chosen = [available[t] for t in wf["tools"]]
-        self.agent = Agent(client, instructions=compiled["instructions"], name=wf["name"], tools=chosen)
+        self.agent = Agent(
+            client,
+            instructions=compiled["instructions"],
+            name=wf["name"],
+            tools=chosen,
+            default_options={"temperature": 0},  # tool calling follows the note more reliably without sampling
+        )
         self.session = self.agent.create_session()
 
     def _record(self, name: str, args: dict, result: dict) -> str:

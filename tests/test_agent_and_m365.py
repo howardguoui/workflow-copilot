@@ -68,6 +68,7 @@ async def test_agent_follows_the_note_and_calls_its_tool():
     assert answer == "It fits: 143,040 tokens, 17 requests at 8k."
     assert sent[0]["messages"][0]["content"] == compiled["instructions"]  # the note became the system prompt
     assert {t["function"]["name"] for t in sent[0]["tools"]} == {"plan_vllm", "read_note"}  # only linked tools
+    assert all(body["temperature"] == 0 for body in sent)  # greedy: the same note gives the same agent
     assert bot.calls[0]["tool"] == "plan_vllm" and bot.calls[0]["result"]["kv_tokens"] == 143_040
     tool_msg = next(m for m in sent[1]["messages"] if m.get("role") == "tool")
     assert json.loads(tool_msg["content"])["max_concurrent_at_max_len"] == 17
