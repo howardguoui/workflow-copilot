@@ -5,6 +5,9 @@ workflow-copilot chat "vault/GPU Sizing Assistant.md"         # chat in the term
 workflow-copilot serve "vault/GPU Sizing Assistant.md"        # Microsoft 365 Agents SDK endpoint on :3978
 workflow-copilot record vault                                 # answer every note's examples, save transcripts
 workflow-copilot site                                         # build the static demo in docs/
+
+chat, serve and record take --mcp-lab "inference-lab mcp" (or a URL) to get plan_vllm from Local Inference Lab's
+MCP server instead of the in-process copy.
 """
 
 from __future__ import annotations
@@ -22,6 +25,7 @@ from .note import compile_note
 
 DEFAULT_BASE_URL = os.getenv("COPILOT_BASE_URL", "http://localhost:11434/v1")
 DEFAULT_MODEL = os.getenv("COPILOT_MODEL", "qwen3:8b")
+DEFAULT_MCP_LAB = os.getenv("COPILOT_MCP_LAB") or None
 
 
 def workflow_notes(vault: Path) -> list[Path]:
@@ -42,26 +46,40 @@ def _client(args):
     return make_client(args.base_url, args.model)
 
 
+def _lab(args):
+    """Connection to Local Inference Lab's MCP server for --mcp-lab; a no-op yielding None without it."""
+    from contextlib import nullcontext
+
+    if not args.mcp_lab:
+        return nullcontext()
+    from .lab_mcp import connect
+
+    return connect(args.mcp_lab)
+
+
 async def _chat(args) -> None:
     from .agent import WorkflowCopilot
 
     note = Path(args.note)
     compiled = compile_note(note, args.vault or note.parent)
-    bot = WorkflowCopilot(compiled, args.vault or note.parent, _client(args))
-    wf = compiled["workflow"]
-    print(f"{wf['name']} ({args.model}). Try: {wf['examples'][0] if wf['examples'] else ''}\nEmpty line to quit.")
-    while True:
-        try:
-            text = input("\nyou> ").strip()
-        except EOFError:
-            break
-        if not text:
-            break
-        start = len(bot.calls)
-        reply = await bot.ask(text)
-        for c in bot.calls[start:]:
-            print(f"  [tool] {c['tool']}({json.dumps(c['arguments'])})")
-        print(f"bot> {reply}")
+    async with _lab(args) as lab:
+        bot = WorkflowCopilot(compiled, args.vault or note.parent, _client(args), lab=lab)
+        wf = compiled["workflow"]
+        source = f", plan_vllm over MCP: {args.mcp_lab}" if lab else ""
+        print(f"{wf['name']} ({args.model}{source}). Try: {wf['examples'][0] if wf['examples'] else ''}")
+        print("Empty line to quit.")
+        while True:
+            try:
+                text = input("\nyou> ").strip()
+            except EOFError:
+                break
+            if not text:
+                break
+            start = len(bot.calls)
+            reply = await bot.ask(text)
+            for c in bot.calls[start:]:
+                print(f"  [tool] {c['tool']}({json.dumps(c['arguments'])})")
+            print(f"bot> {reply}")
 
 
 async def _record(args) -> None:
@@ -69,19 +87,28 @@ async def _record(args) -> None:
 
     vault = Path(args.vault)
     chats = []
-    for note in workflow_notes(vault):
-        compiled = compile_note(note, vault)
-        for question in compiled["workflow"]["examples"]:
-            bot = WorkflowCopilot(compiled, vault, _client(args))
-            answer = await bot.ask(question)
-            chats.append(
-                {"workflow": compiled["workflow"]["name"], "question": question, "calls": bot.calls, "answer": answer}
-            )
-            print(f"[{compiled['workflow']['name']}] {question}\n  tools: {[c['tool'] for c in bot.calls]}\n")
+    async with _lab(args) as lab:
+        for note in workflow_notes(vault):
+            compiled = compile_note(note, vault)
+            for question in compiled["workflow"]["examples"]:
+                bot = WorkflowCopilot(compiled, vault, _client(args), lab=lab)
+                answer = await bot.ask(question)
+                chats.append(
+                    {
+                        "workflow": compiled["workflow"]["name"],
+                        "question": question,
+                        "calls": bot.calls,
+                        "answer": answer,
+                    }
+                )
+                print(f"[{compiled['workflow']['name']}] {question}\n  tools: {[c['tool'] for c in bot.calls]}\n")
+    runtime = f"Microsoft Agent Framework {version('agent-framework-core')}"
+    if args.mcp_lab:
+        runtime += " (plan_vllm from Local Inference Lab's MCP server)"
     out = {
         "recorded_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         "model": args.model,
-        "runtime": f"Microsoft Agent Framework {version('agent-framework-core')}",
+        "runtime": runtime,
         "chats": chats,
     }
     path = Path(args.out)
@@ -97,6 +124,13 @@ def main(argv: list[str] | None = None) -> None:
     def model_args(p):
         p.add_argument("--base-url", default=DEFAULT_BASE_URL, help="OpenAI-compatible endpoint (Ollama default)")
         p.add_argument("--model", default=DEFAULT_MODEL)
+        p.add_argument(
+            "--mcp-lab",
+            default=DEFAULT_MCP_LAB,
+            metavar="COMMAND_OR_URL",
+            help="get plan_vllm from Local Inference Lab's MCP server: a command to run over stdio "
+            "('inference-lab mcp') or a streamable HTTP URL (env COPILOT_MCP_LAB); default: in-process",
+        )
 
     c = sub.add_parser("compile", help="print the agent a workflow note defines")
     c.add_argument("note")
@@ -129,7 +163,9 @@ def main(argv: list[str] | None = None) -> None:
         from .m365 import create_web_app
 
         note = Path(a.note)
-        app = create_web_app(compile_note(note, a.vault or note.parent), a.vault or note.parent, lambda: _client(a))
+        app = create_web_app(
+            compile_note(note, a.vault or note.parent), a.vault or note.parent, lambda: _client(a), mcp_lab=a.mcp_lab
+        )
         print(f"Microsoft 365 Agents SDK endpoint: http://localhost:{a.port}/api/messages")
         web.run_app(app, host="localhost", port=a.port)
     elif a.cmd == "record":

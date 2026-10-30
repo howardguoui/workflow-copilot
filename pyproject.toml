@@ -14,7 +14,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff==0.16.10"]
+# --mcp-lab (plan_vllm from Local Inference Lab's MCP server). Agent Framework 1.23+ speaks mcp 2; older ones need mcp 1.
+mcp = ["agent-framework-core>=1.23,<2", "mcp>=2.2,<3", "tenacity>=9.1.4,<9.2"]  # as agent-framework-core[all] pins them
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff==0.16.10", "workflow-copilot[mcp]"]
 
 [project.scripts]
 workflow-copilot = "workflow_copilot.cli:main"

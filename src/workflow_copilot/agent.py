@@ -2,16 +2,21 @@
 
 The model is any OpenAI-compatible chat endpoint: Ollama locally (http://localhost:11434/v1), vLLM, or Azure
 OpenAI. Only the tools the note links to are given to the agent, with the descriptions written in the tool notes.
+The tools run in-process (tools.py) by default; pass `lab` (a connected MCP server, see lab_mcp.py) to get
+plan_vllm from Local Inference Lab's MCP server instead.
 """
 
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from agent_framework import Agent, tool
 from agent_framework.openai import OpenAIChatCompletionClient
 
 from . import tools as T
+
+if TYPE_CHECKING:
+    from .lab_mcp import LabServer
 
 
 def make_client(base_url: str, model: str, api_key: str = "ollama", async_client=None) -> OpenAIChatCompletionClient:
@@ -19,11 +24,16 @@ def make_client(base_url: str, model: str, api_key: str = "ollama", async_client
 
 
 class WorkflowCopilot:
-    """One chat session with the agent a workflow note defines. `calls` records every tool call."""
+    """One chat session with the agent a workflow note defines. `calls` records every tool call.
 
-    def __init__(self, compiled: dict, vault: str | Path, client):
+    `lab`: an already connected MCP server (lab_mcp.connect) whose plan_vllm_deployment tool replaces the
+    in-process plan_vllm. None (the default) keeps every tool in-process.
+    """
+
+    def __init__(self, compiled: dict, vault: str | Path, client, lab: "LabServer | None" = None):
         self.compiled = compiled
         self.vault = Path(vault)
+        self.lab = lab
         self.calls: list[dict] = []
         wf = compiled["workflow"]
         available = self._tools(wf["notes"])
@@ -74,6 +84,10 @@ class WorkflowCopilot:
         def read_note(title: Annotated[str, f"note title, one of: {', '.join(notes) or 'none'}"]) -> str:
             return self._record("read_note", {"title": title}, T.read_note(title, self.vault, notes))
 
+        if self.lab is not None:
+            from .lab_mcp import plan_vllm_tool
+
+            plan_vllm = plan_vllm_tool(self.lab, docs.get("plan_vllm"), self._record)
         return {"plan_vllm": plan_vllm, "search_filings": search_filings, "read_note": read_note}
 
     async def ask(self, text: str) -> str:
